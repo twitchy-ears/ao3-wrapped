@@ -19,7 +19,7 @@ import time
 import getpass
 import os
 import argparse
-import readline
+# import readline
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-u", "--username", type=str, default=None, help="Username")

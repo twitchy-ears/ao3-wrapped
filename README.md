@@ -3,6 +3,8 @@ A simple and probably buggy version of a "spotify wrapped" but for Archive Of Ou
 
 So someone showed me a tweet talking about the idea of an Ao3 wrapped script, where it'll show you your top read tags and works over a year, and I was interested by the idea and so gave it a shot and cooked up something basic as I had a quiet evening
 
+For Windows installs see the dedicated instructions at the end of the file
+
 # Installation
 
 This is based off the excellent [ao3_api](https://github.com/ArmindoFlores/ao3_api) however that doesn't support history yet, so I wrote [a fork of it](https://github.com/twitchy-ears/ao3_api).
@@ -43,7 +45,7 @@ Gathering up tags/works for user UserNameGoesHere in the year 2020
 ...
 etc
 
----------- RESULTS ----------
+zb---------- RESULTS ----------
 
 
 
@@ -77,3 +79,36 @@ Error: auth error on work <Work [Name of the fic here]> probably restricted, but
 ```
 
 It'll try and refresh your auth and just move on.  It should really retry properly
+
+
+# Windows Installation and running
+
+Okay this is not really my speciality area but you're looking at something
+like this:
+
+1. Visit ```https://www.python.org/downloads/windows/``` 
+
+2. Download the "Windows x86-64 executable installer" from the 3.8 branch, currently that means: ```https://www.python.org/ftp/python/3.8.6/python-3.8.6-amd64.exe```
+
+3. Run the installer, tick the "Add Python 3.8 to PATH" button then click "Install Now"
+
+4. Click the "Disable path length limit" button at the end of the installer then click "close"
+
+5. Win+R ```cmd```
+
+6. Install the real ao3_api library to get its dependencies, so in the command prompt type:    
+```pip install ao3_api```
+
+7. Visit ```https://github.com/twitchy-ears/ao3_api``` click the green "Code" button and select "Download zip"
+
+8. Visit ```https://github.com/twitchy-ears/ao3-wrapped``` click the green "Code" button and select "Download zip"
+
+9. Unzip both files in your Downloads directory (adjust following commands if your not working in a directory called "Downloads" in your home directory)
+
+10. Back to your command prompt from step 5, steps 11, 12, and 13 are commands to type.
+
+11. ```cd Downloads\ao3-wrapped-main\ao3-wrapped-main```
+
+12. ```set PYTHONPATH=%HOMEDRIVE%%HOMEPATH%\Downloads\ao3_api-master\ao3_api-master```
+
+13. ```python -x ao3-wrapped.py```
