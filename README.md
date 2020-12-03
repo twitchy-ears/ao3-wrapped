@@ -93,15 +93,17 @@ Error: auth error on work <Work [Name of the fic here]> probably restricted, but
 
 It'll try and refresh your auth and just move on.  It should really retry properly
 
+Since this relies on reading your history there are certain things it will skip, this includes locked collections because it can't retrieve tags from them.
+
 
 # Windows Installation and running
 
 Okay this is not really my speciality area but you're looking at something
-like this:
+like this (this was written in December 2020 and hence will become less correct over time)
 
-1. Visit ```https://www.python.org/downloads/windows/``` 
+1. Visit https://www.python.org/downloads/windows/
 
-2. Look for the line: ```Download Windows x86-64 executable installer``` Under the heading: ```Python 3.8.6 - Sept. 24, 2020``` and click that link, currently that means: ```https://www.python.org/ftp/python/3.8.6/python-3.8.6-amd64.exe```
+2. Look for the line: ```Download Windows x86-64 executable installer``` Under the heading: ```Python 3.8.6 - Sept. 24, 2020``` and click that link, at time of writing that means: https://www.python.org/ftp/python/3.8.6/python-3.8.6-amd64.exe
 
 3. Run the installer, tick the "Add Python 3.8 to PATH" button then click "Install Now"
 
@@ -112,9 +114,9 @@ like this:
 6. Install the real ao3_api library to get its dependencies, so in the command prompt type:    
 ```pip install ao3_api```
 
-7. Visit ```https://github.com/twitchy-ears/ao3_api``` click the green "Code" button and select "Download zip"
+7. Visit https://github.com/twitchy-ears/ao3_api click the green "Code" button and select "Download zip"
 
-8. Visit ```https://github.com/twitchy-ears/ao3-wrapped``` click the green "Code" button and select "Download zip"
+8. Visit https://github.com/twitchy-ears/ao3-wrapped click the green "Code" button and select "Download zip"
 
 9. Unzip both files in your Downloads directory (adjust following commands if your not working in a directory called "Downloads" in your home directory)
 
