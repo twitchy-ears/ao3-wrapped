@@ -34,7 +34,8 @@ $ PYTHONPATH=../ao3_api ./ao3-wrapped.py
 It will prompt you for your username and password, use these to log into Ao3 and retrieve your history.  It will try not to run afoul of the rate limiter while doing this but no promises.
 
 If you run afoul of the rate limiter then play with the following options:
-```--history-sleep
+```
+--history-sleep
 --max-history-pages
 --request-window
 --request-amount
@@ -43,7 +44,7 @@ If you run afoul of the rate limiter then play with the following options:
 
 Importantly the default of ```--max-history-pages``` is 100.  If you have more than 100 pages of history in the past year you will need to turn this up or things will get missed.
 
-If you get a timeout during loading the history (before the output starts to include ```<Work [title]>``` lines then you need to turn up your --history-sleep option.
+If you get a timeout during loading the history (before the output starts to include ```<Work [title]>``` lines then you need to turn up your ```--history-sleep``` option.
 
 # Output
 
