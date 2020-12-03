@@ -29,6 +29,8 @@ parser.add_argument("--num-works", type=int, default=10, help="Top N works")
 parser.add_argument("--request-window", type=int, default=60, help="Time window for rate limiter, issue only X requests in this window")
 parser.add_argument("--request-amount", type=int, default=40, help="Number of requests to make in a time window")
 parser.add_argument("--sleep", type=int, default=3, help="Additional sleep between requesting each work for tags")
+parser.add_argument("--history-sleep", type=int, default=3, help="Additional sleep between loading history pages")
+parser.add_argument("--max-history-pages", type=int, default=100, help="Maximum number of pages of history to load")
 args = parser.parse_args()
 
 if args.username is None:
@@ -58,7 +60,7 @@ max_process = 3
 curr_process = 0
 
 # For everything in the history
-for entry in session.get_history():
+for entry in session.get_history(args.history_sleep, args.max_history_pages):
     curr_process += 1
     work_obj = entry[0]
     num_obj = entry[1]

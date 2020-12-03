@@ -31,7 +31,19 @@ $ cd ao3-wrapped
 $ PYTHONPATH=../ao3_api ./ao3-wrapped.py
 ```
 
-It will prompt you for your username and password, use these to log into Ao3 and retrieve your history.  It will try not to run afoul of the rate limiter while doing this but no promises, if you have a lot of history this is possible, you may need to tweak the `--request-window`, `--request-amount`, and `--sleep` arguments to be sure you're giving everything time to go slow enough, these lean on the underlying ao3_api library so depends how that's implementing them I've not checked in heavy detail.
+It will prompt you for your username and password, use these to log into Ao3 and retrieve your history.  It will try not to run afoul of the rate limiter while doing this but no promises.
+
+If you run afoul of the rate limiter then play with the following options:
+```--history-sleep
+--max-history-pages
+--request-window
+--request-amount
+--sleep
+```
+
+Importantly the default of ```--max-history-pages``` is 100.  If you have more than 100 pages of history in the past year you will need to turn this up or things will get missed.
+
+If you get a timeout during loading the history (before the output starts to include ```<Work [title]>``` lines then you need to turn up your --history-sleep option.
 
 # Output
 
@@ -88,7 +100,7 @@ like this:
 
 1. Visit ```https://www.python.org/downloads/windows/``` 
 
-2. Download the "Windows x86-64 executable installer" from the 3.8 branch, currently that means: ```https://www.python.org/ftp/python/3.8.6/python-3.8.6-amd64.exe```
+2. Look for the line: ```Download Windows x86-64 executable installer``` Under the heading: ```Python 3.8.6 - Sept. 24, 2020``` and click that link, currently that means: ```https://www.python.org/ftp/python/3.8.6/python-3.8.6-amd64.exe```
 
 3. Run the installer, tick the "Add Python 3.8 to PATH" button then click "Install Now"
 
