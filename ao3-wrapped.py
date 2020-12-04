@@ -44,7 +44,7 @@ def retrieve_work(workid, session):
 
     while work is None:
         try: 
-            work = AO3.Work(workid, session)
+            work = AO3.Work(workid)
         except AO3.utils.HTTPError:
             print(f"Being rate limited, sleeping for {args.rate_limit_pause} seconds then trying again")
             time.sleep(args.rate_limit_pause)
@@ -99,7 +99,7 @@ if args.username is None:
 if args.password is None:
     args.password = getpass.getpass()
 
-current_year = datetime.today().year
+current_year = (datetime.today().year - 1)
 
 print(f"Gathering up tags/works for user {args.username} in the year {current_year}")
 print(f"Retrieving up to {args.max_history_pages} pages of history with {args.history_sleep} seconds between each one, please be patient.")

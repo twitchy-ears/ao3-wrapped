@@ -3,7 +3,7 @@ A simple and probably buggy version of a "spotify wrapped" but for Archive Of Ou
 
 So someone showed me a tweet talking about the idea of an Ao3 wrapped script, where it'll show you your top read tags and works over a year, and I was interested by the idea and so gave it a shot and cooked up something basic as I had a quiet evening.
 
-Currently it outputs works (by amount viewed), tags, relationships, characters, fandoms, categories, warnings, ratings, number of fics, kudos left, and total words in all fics.
+Currently it outputs works (by amount viewed), tags, relationships, characters, fandoms, categories, warnings, ratings, number of fics, kudos left, and total words in all fics.  It will only output fics that are publicly viewable since if it uses the session details to log in as you to view them it will reset the "last viewed" date for all of this years fics to today.
 
 As an early warning running this will take *a long time*, by default it will load 100 pages of your history (~2000 fics), with a 3 second sleep between each page.  Then it will retrieve the tags from each fic read in the current year, again with a 3 second wait between each one to try and avoid the rate limiter.  So if you have read 2000 fics this year it will take ~5 minutes to load your history and then about 1 hour 40 to retrieve all the tags from those fics and process them for you.  Be very patient.
 
@@ -11,7 +11,7 @@ For Windows installs see the dedicated instructions at the end of the file
 
 # Installation
 
-This is based off the excellent [ao3_api](https://github.com/ArmindoFlores/ao3_api) however that doesn't support history yet, so I wrote [a fork of it](https://github.com/twitchy-ears/ao3_api).
+This is based off the excellent [ao3_api](https://github.com/ArmindoFlores/ao3_api) however that doesn't support history yet, so I wrote [a fork of it](https://github.com/twitchy-ears/ao3_api), specifically these instructions use a branch of that fork that is more verbose to let people see whats happening as it runs.
 
 This was written after work on my work machine running python3.8 and its quickly written and a bit hacky, but you'll want to do something like this on a linux machine.  As usual make modifications as required:
 
@@ -93,6 +93,8 @@ It'll try and refresh your auth and just move on.  It should really retry proper
 
 Since this relies on reading your history there are certain things it will skip, this includes locked collections because it can't retrieve tags from them.
 
+It also can only read publicly visible fics because if it logs in as you it'll reset the date you last visited your fic.
+
 
 # Windows Installation and running
 
@@ -150,7 +152,7 @@ If you have more than 100 pages of history for this year you will need to increa
 
 # Notes
 
-To build your own windows package try
+To build your own windows package try getting a workable copy of the script then doing something like this:
 ```
 python -m pip install pyinstaller
 PyInstaller -p %HOMEDRIVE%%HOMEPATH%\Downloads\ao3_api-master\ao3_api-master ao3-wrapped.py
