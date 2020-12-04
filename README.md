@@ -130,4 +130,7 @@ like this (this was written in December 2020 and hence will become less correct 
 
 12. ```set PYTHONPATH=%HOMEDRIVE%%HOMEPATH%\Downloads\ao3_api-master\ao3_api-master```
 
-13. ```python -x ao3-wrapped.py```
+13. ```python -x ao3-wrapped.py --dump-report```
+
+14. Once it's done look for a text file named after your username and the date you
+    ran the program, it'll contain the output you generated.
