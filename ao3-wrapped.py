@@ -27,24 +27,30 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-u", "--username", type=str, default=None, help="Username")
 parser.add_argument("-p", "--password", type=str, default=None, help="Password")
+parser.add_argument("--year", type=int, default=None, help="Set the year, otherwise current")
 parser.add_argument("--top-number", type=int, default=10, help="Top N of everything (tags, stories, relationships, etc), default=10")
 parser.add_argument("--only-kudos", action="store_true", default=False, help="Only process fics you have left kudos for")
 parser.add_argument("--request-window", type=int, default=60, help="Time window for rate limiter, issue only X requests in this window, default=60")
 parser.add_argument("--request-amount", type=int, default=40, help="Number of requests to make in a time window, default=40")
 parser.add_argument("--sleep", type=int, default=3, help="Additional sleep between requesting each work for tags, default=3")
 parser.add_argument("--history-sleep", type=int, default=3, help="Additional sleep between loading history pages, default=3")
-parser.add_argument("--max-history-pages", type=int, default=100, help="Maximum number of pages of history to load, default=100")
+parser.add_argument("--start-history-page", type=int, default=1, help="Start reading on this history page, default 1, can be used with --max-history-pages and --year to select a range")
+parser.add_argument("--max-history-page", type=int, default=100, help="Maximum number of pages of history to load, default=100")
 parser.add_argument("--rate-limit-pause", type=int, default=180, help="Seconds to wait if rate limited while retrieving tags")
 parser.add_argument("--no-dump-report", action="store_true", default=False, help="Dump report out to a text file")
+parser.add_argument("--just-dump-history", action="store_true", default=False, help="Just dump out the history page contents")
 
 args = parser.parse_args()
+args.start_history_page -= 1 # This thing is zero indexed
+args.max_history_page -= 1  # This thing is zero indexed
+number_of_pages_of_history = (args.max_history_page - args.start_history_page) + 1
 
 def retrieve_work(workid):
     work = None
 
     while work is None:
         try:
-            work = AO3.Work(workid)                
+            work = AO3.Work(workid, None, True)                
         except AO3.utils.HTTPError:
             print(f"Being rate limited, sleeping for {args.rate_limit_pause} seconds then trying again")
             time.sleep(args.rate_limit_pause)
@@ -100,9 +106,11 @@ if args.password is None:
     args.password = getpass.getpass()
 
 current_year = datetime.today().year
+if args.year:
+    current_year = args.year
 
 print(f"Gathering up tags/works for user {args.username} in the year {current_year}")
-print(f"Retrieving up to {args.max_history_pages} pages of history with {args.history_sleep} seconds between each one, please be patient.")
+print(f"Retrieving up to {number_of_pages_of_history} pages of history with {args.history_sleep} seconds between each one, please be patient.")
 
 # If we're outputting a report set that up
 report_file = None
@@ -155,21 +163,28 @@ curr_process = 0
 
 # Fetch the history for the session
 session.get_history(args.history_sleep,
-                    args.max_history_pages,
+                    args.start_history_page,
+                    args.max_history_page,
                     args.rate_limit_pause)
 
 # Now count up how many are in this year
 fics_this_year = 0
-for entry in session.get_history(0, args.max_history_pages, args.rate_limit_pause):
+for entry in session.get_history(0, args.start_history_page, args.max_history_page, args.rate_limit_pause):
+    work_obj = entry[0]
+    num_obj = entry[1]
     date_obj = entry[2]
     if date_obj.year == current_year:
+        if args.just_dump_history is True:
+            print(f"{work_obj} - {num_obj} - {date_obj.date()}")
         fics_this_year += 1
 
 print(f"Total fics this year found in history: {fics_this_year}")
 
+if args.just_dump_history is True:
+    exit(0)
 
 # For everything in the history
-for entry in session.get_history(0, args.max_history_pages, args.rate_limit_pause):
+for entry in session.get_history(0, args.start_history_page, args.max_history_page, args.rate_limit_pause):
     curr_process += 1
     work_obj = entry[0]
     num_obj = entry[1]
@@ -237,7 +252,8 @@ for entry in session.get_history(0, args.max_history_pages, args.rate_limit_paus
 
         # Add an extra sleep after the work to try and avoid the rate limiter
         time.sleep(args.sleep)
-
+    elif args.year is not None:
+        print(f"{curr_process}/{fics_this_year}: Ignoring, not in {current_year}: {work_obj} - {num_obj} - {date_obj.date()}")
 
 print("\n\n---------- RESULTS ----------\n")
 
