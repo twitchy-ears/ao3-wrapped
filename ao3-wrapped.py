@@ -99,7 +99,7 @@ if args.username is None:
 if args.password is None:
     args.password = getpass.getpass()
 
-current_year = (datetime.today().year - 1)
+current_year = datetime.today().year
 
 print(f"Gathering up tags/works for user {args.username} in the year {current_year}")
 print(f"Retrieving up to {args.max_history_pages} pages of history with {args.history_sleep} seconds between each one, please be patient.")
