@@ -20,7 +20,7 @@ This was written after work on my work machine running python3.8 and its quickly
 $ python3.8 -m pip install ao3_api
 
 # Then get the local fork with history:
-$ git clone https://github.com/twitchy-ears/ao3_api.git
+$ git clone https://github.com/twitchy-ears/ao3_api.git -b noisy
 
 # Download the wrapped script itself:
 $ git clone https://github.com/twitchy-ears/ao3-wrapped.git
@@ -128,7 +128,7 @@ like this (this was written in December 2020 and hence will become less correct 
 6. Install the real ao3_api library to get its dependencies, so in the command prompt type:    
 ```pip install ao3_api```
 
-7. Visit https://github.com/twitchy-ears/ao3_api click the green "Code" button and select "Download zip"
+7. Visit https://github.com/twitchy-ears/ao3_api/tree/noisy click the green "Code" button and select "Download zip"
 
 8. Visit https://github.com/twitchy-ears/ao3-wrapped click the green "Code" button and select "Download zip"
 
