@@ -31,7 +31,19 @@ parser.add_argument("--request-amount", type=int, default=40, help="Number of re
 parser.add_argument("--sleep", type=int, default=3, help="Additional sleep between requesting each work for tags, default=3")
 parser.add_argument("--history-sleep", type=int, default=3, help="Additional sleep between loading history pages, default=3")
 parser.add_argument("--max-history-pages", type=int, default=100, help="Maximum number of pages of history to load, default=100")
+parser.add_argument("--rate-limit-pause", type=int, default=180, help="Seconds to wait if rate limited while retrieving tags")
+
 args = parser.parse_args()
+
+def retrieve_work(workid):
+    work = None
+    while work is None:
+        try: 
+            work = AO3.Work(workid)
+        except AO3.utils.HTTPError:
+            print(f"Being rate limited, sleeping for {args.rate_limit_pause} seconds then trying again")
+            time.sleep(args.rate_limit_pause)
+    return work
 
 if args.username is None:
     args.username = input("Username: ")
@@ -41,6 +53,7 @@ if args.password is None:
 current_year = datetime.datetime.today().year
 
 print(f"Gathering up tags/works for user {args.username} in the year {current_year}")
+print(f"Retrieving up to {args.max_history_pages} pages of history with {args.history_sleep} seconds between each one, please be patient.")
 
 session = AO3.Session(args.username, args.password)
 session.refresh_auth_token()
@@ -72,10 +85,12 @@ for entry in session.get_history(args.history_sleep, args.max_history_pages):
     if date_obj.year == current_year:
         try:
             # Get the work details
-            work = AO3.Work(work_obj.workid)
+            work = retrieve_work(work_obj.workid)
+                
             if work:
                 # Print out title, times, date
-                print(f"{work} - {num_obj} times - {date_obj.date()}", flush=True)
+                print(f"Retrieving tags for '{work}' (viewed {num_obj} times, last: {date_obj.date()})", flush=True)
+
                 # Log the times we visited this work
                 work_frequency[work_obj.workid] = num_obj
 
@@ -116,6 +131,8 @@ for data in sorted_tags[:args.num_tags]:
 
 print(f"\n\n---------- Top {args.num_works} works ----------\n")
 for data in sorted_work[:args.num_works]:
-    work = AO3.Work(data[0])
+    work = retrieve_work(data[0])
     print(f"{work}: {data[1]}")
     time.sleep(args.sleep) # Again, don't get rate limited
+
+print(f"\nDONE!  Happy {current_year}")
