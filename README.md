@@ -99,6 +99,22 @@ Since this relies on reading your history there are certain things it will skip,
 Okay this is not really my speciality area but you're looking at something
 like this (this was written in December 2020 and hence will become less correct over time)
 
+## Short version:
+
+1. Download the ao3-wrapped.zip from the Releases page
+
+2. Unzip it in your Downloads directory
+
+3. Open a terminal Win+R ```cmd```
+
+4. Type this: ```cd Downloads\ao3-wrapped\ao3-wrapped```
+
+5. Type this: ```ao3-wrapped.exe```
+
+6. Wait for it to be done, it will dump a .txt file starting with your username in the Downloads\ao3-wrapped\ao3-wrapped directory.
+
+## Long Version that should definitely work maybe?
+
 1. Visit https://www.python.org/downloads/windows/
 
 2. Look for the line: ```Download Windows x86-64 executable installer``` Under the heading: ```Python 3.8.6 - Sept. 24, 2020``` and click that link, at time of writing that means: https://www.python.org/ftp/python/3.8.6/python-3.8.6-amd64.exe
@@ -131,3 +147,11 @@ like this (this was written in December 2020 and hence will become less correct 
 If you have more than 100 pages of history for this year you will need to increase the amount loaded with the ```--max-history-pages``` argument.  If for example you have 175 then use:
 
 ```python -x ao3-wrapped.py --dump-report --max-history-pages 175```
+
+# Notes
+
+To build your own windows package try
+```
+python -m pip install pyinstaller
+PyInstaller -p %HOMEDRIVE%%HOMEPATH%\Downloads\ao3_api-master\ao3_api-master ao3-wrapped.py
+```

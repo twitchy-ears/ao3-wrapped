@@ -35,7 +35,7 @@ parser.add_argument("--sleep", type=int, default=3, help="Additional sleep betwe
 parser.add_argument("--history-sleep", type=int, default=3, help="Additional sleep between loading history pages, default=3")
 parser.add_argument("--max-history-pages", type=int, default=100, help="Maximum number of pages of history to load, default=100")
 parser.add_argument("--rate-limit-pause", type=int, default=180, help="Seconds to wait if rate limited while retrieving tags")
-parser.add_argument("--dump-report", action="store_true", default=False, help="Dump report out to a text file")
+parser.add_argument("--no-dump-report", action="store_true", default=False, help="Dump report out to a text file")
 
 args = parser.parse_args()
 
@@ -80,17 +80,18 @@ def meta_thing_counter(place, source):
     for data in source:
         thing_counter(str(data), place)
 
+def output_terminal_and_file(thing, report_file):
+    print(thing)
+    if report_file is not None:
+        with open(report_file, 'a', encoding="utf-8") as f:
+            print(thing, file=f)
+        
+        
 def top_number_of_thing(thing, label, report_file):
     sorted_data = sorted(thing.items(), key=lambda x: x[1],reverse=True)
-    print(f"\n\n---------- Top {args.top_number} {label} ----------\n")
+    output_terminal_and_file(f"\n\n---------- Top {args.top_number} {label} ----------\n", report_file)
     for data in sorted_data[:args.top_number]:
-        print(f"{data[0]}: {data[1]}")
-
-    if report_file is not None:
-        with open(report_file, 'a') as f:
-            print(f"\n\n---------- Top {args.top_number} {label} ----------\n", file=f)
-            for data in sorted_data[:args.top_number]:
-                print(f"{data[0]}: {data[1]}", file=f)
+        output_terminal_and_file(f"{data[0]}: {data[1]}", report_file)
 
 
 if args.username is None:
@@ -105,7 +106,7 @@ print(f"Retrieving up to {args.max_history_pages} pages of history with {args.hi
 
 # If we're outputting a report set that up
 report_file = None
-if args.dump_report is True:
+if args.no_dump_report is False:
     time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     report_file = f"{args.username}_{time_str}.txt"
     if os.path.exists(report_file):
@@ -138,6 +139,7 @@ AO3.utils.set_rqtw(args.request_amount)
 # we can sort by frequency
 work_frequency = {}
 tag_frequency = {}
+author_frequency = {}
 relationship_frequency = {}
 character_frequency = {}
 fandom_frequency = {}
@@ -213,6 +215,7 @@ for entry in session.get_history(0, args.max_history_pages, args.rate_limit_paus
 
                 # Store just about everything else
                 meta_thing_counter(tag_frequency, work.tags)
+                meta_thing_counter(author_frequency, work.authors)
                 meta_thing_counter(relationship_frequency, work.relationships)
                 meta_thing_counter(character_frequency, work.characters)
                 meta_thing_counter(fandom_frequency, work.fandoms)
@@ -240,6 +243,7 @@ print("\n\n---------- RESULTS ----------\n")
 
 top_number_of_thing(work_frequency, 'Works', report_file)
 top_number_of_thing(tag_frequency, 'Tags', report_file)
+top_number_of_thing(author_frequency, 'Authors', report_file)
 top_number_of_thing(relationship_frequency, 'Relationships', report_file)
 top_number_of_thing(character_frequency, 'Characters', report_file)
 top_number_of_thing(fandom_frequency, 'Fandoms', report_file)
@@ -248,17 +252,11 @@ top_number_of_thing(warning_frequency, 'Warnings', report_file)
 top_number_of_thing(rating_frequency, 'Ratings', report_file)
 
 
-print(f"\n\n---------- Fics This Year ----------\n{fics_this_year}")
-with open(report_file, 'a') as f:
-    print(f"\n\n---------- Fics This Year ----------\n{fics_this_year}", file=f)
+output_terminal_and_file(f"\n\n---------- Fics This Year ----------\n{fics_this_year}", report_file)
 
-print(f"\n\n---------- Left Kudos ----------\n{left_kudos}")
-with open(report_file, 'a') as f:
-    print(f"\n\n---------- Left Kudos ----------\n{left_kudos}", file=f)
+output_terminal_and_file(f"\n\n---------- Left Kudos ----------\n{left_kudos}", report_file)
 
-print(f"\n\n---------- Total Words Read ----------\n{total_words}")
-with open(report_file, 'a') as f:
-    print(f"\n\n---------- Total Words Read ----------\n{total_words}", file=f)
+output_terminal_and_file(f"\n\n---------- Total Words Read ----------\n{total_words}", report_file)
 
 # Sort the results
 #sorted_tags = sorted(tag_frequency.items(), key=lambda x: x[1],reverse=True)
