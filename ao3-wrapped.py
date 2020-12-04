@@ -39,12 +39,12 @@ parser.add_argument("--no-dump-report", action="store_true", default=False, help
 
 args = parser.parse_args()
 
-def retrieve_work(workid, session):
+def retrieve_work(workid):
     work = None
 
     while work is None:
-        try: 
-            work = AO3.Work(workid)
+        try:
+            work = AO3.Work(workid)                
         except AO3.utils.HTTPError:
             print(f"Being rate limited, sleeping for {args.rate_limit_pause} seconds then trying again")
             time.sleep(args.rate_limit_pause)
@@ -181,7 +181,7 @@ for entry in session.get_history(0, args.max_history_pages, args.rate_limit_paus
     if date_obj.year == current_year:
         try:
             # Get the work details
-            work = retrieve_work(work_obj.workid, session)
+            work = retrieve_work(work_obj.workid)
 
             if work:
             
