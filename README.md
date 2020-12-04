@@ -1,7 +1,9 @@
 # ao3-wrapped
 A simple and probably buggy version of a "spotify wrapped" but for Archive Of Our Own, shows top tags and fics by scanning your history
 
-So someone showed me a tweet talking about the idea of an Ao3 wrapped script, where it'll show you your top read tags and works over a year, and I was interested by the idea and so gave it a shot and cooked up something basic as I had a quiet evening
+So someone showed me a tweet talking about the idea of an Ao3 wrapped script, where it'll show you your top read tags and works over a year, and I was interested by the idea and so gave it a shot and cooked up something basic as I had a quiet evening.
+
+Currently it outputs works (by amount viewed), tags, relationships, characters, fandoms, categories, warnings, ratings, and total words in all fics.
 
 As an early warning running this will take *a long time*, by default it will load 100 pages of your history (~2000 fics), with a 3 second sleep between each page.  Then it will retrieve the tags from each fic read in the current year, again with a 3 second wait between each one to try and avoid the rate limiter.  So if you have read 2000 fics this year it will take ~5 minutes to load your history and then about 1 hour 40 to retrieve all the tags from those fics and process them for you.  Be very patient.
 
@@ -30,10 +32,14 @@ Since this is based on a forked version of the ao3_api library you'll need to sp
 
 ```
 $ cd ao3-wrapped
-$ PYTHONPATH=../ao3_api ./ao3-wrapped.py
+$ PYTHONPATH=../ao3_api ./ao3-wrapped.py --dump-report
 ```
 
 It will prompt you for your username and password, use these to log into Ao3 and retrieve your history.  It will try not to run afoul of the rate limiter while doing this but no promises.
+
+The report will be to the console but also to a file named "<Username> <datetime>.txt" which will have all the useful output logged in it.
+
+***IMPORTANT:*** If you have read more fic than 100 pages worth then you need to dial up ```--max-history-ages```, this is just there as a basic safeguard to constrain run time.
 
 If you run afoul of the rate limiter then play with the following options:
 ```
@@ -44,43 +50,29 @@ If you run afoul of the rate limiter then play with the following options:
 --sleep
 ```
 
-Importantly the default of ```--max-history-pages``` is 100.  If you have more than 100 pages of history in the past year you will need to turn this up or things will get missed.
-
-If you get a timeout during loading the history (before the output starts to include ```<Work [title]>``` lines then you need to turn up your ```--history-sleep``` option.
-
-Once you have the history the main bit of code (tag retrieval) knows how to cope with timeouts and it sleeps for ```--rate-limit-pause``` seconds before trying again (default 180)
+However the history retrieval code and the work details retrieval code *should* know how to cope with failures and retry properly.
 
 # Output
 
 Expect to see something that looks like this:
 
 ```
-Gathering up tags/works for user UserNameGoesHere in the year 2020
-<Work [This was a good fic]> - 30 times - 2020-12-03
-<Work [This fic was okay]> - 3 times - 2020-11-30
-<Work [This fic was alright]> - 5 times - 2020-11-12
-...
+Gathering up tags/works for user Usernamein the year 2020
+Retrieving up to 100 pages of history with 3 seconds between each one, please be patient.
+Output will be dumped to 'Username_2020-12-04_12-16-14.txt'
+Total fics this year found in history: 400
+1/400: Retrieving data for '<Work [This was a good fic]>' (viewed 30 times, last: 2020-12-04)
+2/400: Retrieving data for '<Work [This fic was okay]>' (viewed 3 times, last: 2020-12-04)
+3/400: Retrieving data for '<Work [This fic was alright]>' (viewed 5 times, last: 2020-12-04)
+..
 etc
 
-zb---------- RESULTS ----------
+---------- RESULTS ----------
 
 
+---------- Top 10 Works ----------
 
----------- Top 10 tags ----------
-
-Fluff: 250
-Angry Politics!: 100
-Emotional Hurt/Comfort: 60
-Angst: 50
-Hurt/Comfort: 40
-etc.
-
----------- Top 10 works ----------
-
-
-<Work [This was a good fic]>: 30
-<Work [Also this one]>: 25
-<Work [This was groovy]>: 20
+'This was a good fic' (https://archiveofourown/works/123456): 30
 ...
 etc
 ```
@@ -132,5 +124,8 @@ like this (this was written in December 2020 and hence will become less correct 
 
 13. ```python -x ao3-wrapped.py --dump-report```
 
-14. Once it's done look for a text file named after your username and the date you
-    ran the program, it'll contain the output you generated.
+14. Once it's done look for a text file named after your username and the date you ran the program, it'll contain the output you generated.
+
+If you have more than 100 pages of history for this year you will need to increase the amount loaded with the ```--max-history-pages``` argument.  If for example you have 175 then use:
+
+```python -x ao3-wrapped.py --dump-report --max-history-pages 175```
