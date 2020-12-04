@@ -3,7 +3,7 @@ A simple and probably buggy version of a "spotify wrapped" but for Archive Of Ou
 
 So someone showed me a tweet talking about the idea of an Ao3 wrapped script, where it'll show you your top read tags and works over a year, and I was interested by the idea and so gave it a shot and cooked up something basic as I had a quiet evening.
 
-Currently it outputs works (by amount viewed), tags, relationships, characters, fandoms, categories, warnings, ratings, and total words in all fics.
+Currently it outputs works (by amount viewed), tags, relationships, characters, fandoms, categories, warnings, ratings, number of fics, kudos left, and total words in all fics.
 
 As an early warning running this will take *a long time*, by default it will load 100 pages of your history (~2000 fics), with a 3 second sleep between each page.  Then it will retrieve the tags from each fic read in the current year, again with a 3 second wait between each one to try and avoid the rate limiter.  So if you have read 2000 fics this year it will take ~5 minutes to load your history and then about 1 hour 40 to retrieve all the tags from those fics and process them for you.  Be very patient.
 
@@ -27,6 +27,8 @@ $ git clone https://github.com/twitchy-ears/ao3-wrapped.git
 ```
 
 # Running it
+
+Read the --help for more options.
 
 Since this is based on a forked version of the ao3_api library you'll need to specify you want to run that fork:
 

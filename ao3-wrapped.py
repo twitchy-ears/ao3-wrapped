@@ -28,6 +28,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-u", "--username", type=str, default=None, help="Username")
 parser.add_argument("-p", "--password", type=str, default=None, help="Password")
 parser.add_argument("--top-number", type=int, default=10, help="Top N of everything (tags, stories, relationships, etc), default=10")
+parser.add_argument("--only-kudos", action="store_true", default=False, help="Only process fics you have left kudos for")
 parser.add_argument("--request-window", type=int, default=60, help="Time window for rate limiter, issue only X requests in this window, default=60")
 parser.add_argument("--request-amount", type=int, default=40, help="Number of requests to make in a time window, default=40")
 parser.add_argument("--sleep", type=int, default=3, help="Additional sleep between requesting each work for tags, default=3")
@@ -48,6 +49,24 @@ def retrieve_work(workid, session):
             print(f"Being rate limited, sleeping for {args.rate_limit_pause} seconds then trying again")
             time.sleep(args.rate_limit_pause)
     return work
+
+def left_kudos_p(work, username):
+    small_kudos = work._soup.find('p', {'class': 'kudos'})
+    if small_kudos is not None: 
+        for a in small_kudos.find_all("a"):
+            if a.attrs["href"] == f"/users/{username}":
+                # print(f"User '{username}' has left kudos on work {work.title} | {work.url}")
+                return True;
+
+    big_kudos = work._soup.find('span', {'class': 'kudos_expanded hidden'})
+    if big_kudos is not None:
+        for a in big_kudos.find_all("a"):
+            if a.attrs["href"] == f"/users/{username}":
+                # print(f"User '{username}' has left kudos on work {work.title} | {work.url}")
+                return True;
+
+    return False;
+    
 
 def thing_counter(thing, place):
     try: 
@@ -104,7 +123,6 @@ if report_file is not None:
 session = AO3.Session(args.username, args.password)
 session.refresh_auth_token()
 
-    
 #works_cache = {}
 #if os.path.exists(args.work_cache_file) and os.stat(args.work_cache_file).st_size > 0:
 #    fileio = open(args.work_cache_file, 'rb')
@@ -127,6 +145,7 @@ category_frequency = {}
 warning_frequency = {}
 rating_frequency = {}
 total_words = 0
+left_kudos = 0
 
 # This was here for debugging to make it only churn through a few fics
 max_process = 3
@@ -161,10 +180,21 @@ for entry in session.get_history(0, args.max_history_pages, args.rate_limit_paus
         try:
             # Get the work details
             work = retrieve_work(work_obj.workid, session)
-                
+
             if work:
+            
+                # check for kudos
+                has_left_kudos = False
+                if left_kudos_p(work, args.username):
+                    left_kudos += 1
+                    has_left_kudos = True
+
+                if args.only_kudos is True and has_left_kudos is not True:
+                    print(f"{curr_process}/{fics_this_year}: Skipping data for '{work}' (viewed {num_obj} times, last: {date_obj.date()}, word-count: {work.words}) - no kudos", flush=True)
+                    raise Exception("no kudos left")
+                
                 # Print out title, times, date
-                print(f"{curr_process}/{fics_this_year}: Retrieving data for '{work}' (viewed {num_obj} times, last: {date_obj.date()})", flush=True)
+                print(f"{curr_process}/{fics_this_year}: Retrieving data for '{work}' (viewed {num_obj} times, last: {date_obj.date()}, word-count: {work.words})", flush=True)
 
                 # Log the times we visited this work
                 work_str = "'{0}' ({1})".format(work.title, work.url)
@@ -172,6 +202,11 @@ for entry in session.get_history(0, args.max_history_pages, args.rate_limit_paus
 
                 # Count words
                 total_words += work.words
+
+                # kudos
+                if left_kudos_p(work, args.username):
+                    left_kudos += 1
+                    
 
                 # Store the rating
                 thing_counter(work.rating, rating_frequency)
@@ -192,6 +227,10 @@ for entry in session.get_history(0, args.max_history_pages, args.rate_limit_paus
         except AO3.utils.AuthError:
             print(f"Error: auth error on work {work_obj} probably restricted, but try to refresh auth token just in case")
             session.refresh_auth_token()
+            
+        except Exception as e:
+            if e == 'no kudos left':
+                pass
 
         # Add an extra sleep after the work to try and avoid the rate limiter
         time.sleep(args.sleep)
@@ -207,6 +246,15 @@ top_number_of_thing(fandom_frequency, 'Fandoms', report_file)
 top_number_of_thing(category_frequency, 'Categories', report_file)
 top_number_of_thing(warning_frequency, 'Warnings', report_file)
 top_number_of_thing(rating_frequency, 'Ratings', report_file)
+
+
+print(f"\n\n---------- Fics This Year ----------\n{fics_this_year}")
+with open(report_file, 'a') as f:
+    print(f"\n\n---------- Fics This Year ----------\n{fics_this_year}", file=f)
+
+print(f"\n\n---------- Left Kudos ----------\n{left_kudos}")
+with open(report_file, 'a') as f:
+    print(f"\n\n---------- Left Kudos ----------\n{left_kudos}", file=f)
 
 print(f"\n\n---------- Total Words Read ----------\n{total_words}")
 with open(report_file, 'a') as f:
