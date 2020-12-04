@@ -34,7 +34,7 @@ Since this is based on a forked version of the ao3_api library you'll need to sp
 
 ```
 $ cd ao3-wrapped
-$ PYTHONPATH=../ao3_api ./ao3-wrapped.py --dump-report
+$ PYTHONPATH=../ao3_api ./ao3-wrapped.py
 ```
 
 It will prompt you for your username and password, use these to log into Ao3 and retrieve your history.  It will try not to run afoul of the rate limiter while doing this but no promises.
@@ -140,15 +140,15 @@ like this (this was written in December 2020 and hence will become less correct 
 
 11. ```cd Downloads\ao3-wrapped-main\ao3-wrapped-main```
 
-12. ```set PYTHONPATH=%HOMEDRIVE%%HOMEPATH%\Downloads\ao3_api-master\ao3_api-master```
+12. ```set PYTHONPATH=%HOMEDRIVE%%HOMEPATH%\Downloads\ao3_api-noisy\ao3_api-noisy```
 
-13. ```python -x ao3-wrapped.py --dump-report```
+13. ```python -x ao3-wrapped.py```
 
 14. Once it's done look for a text file named after your username and the date you ran the program, it'll contain the output you generated.
 
 If you have more than 100 pages of history for this year you will need to increase the amount loaded with the ```--max-history-pages``` argument.  If for example you have 175 then use:
 
-```python -x ao3-wrapped.py --dump-report --max-history-pages 175```
+```python -x ao3-wrapped.py --max-history-pages 175```
 
 # Notes
 
