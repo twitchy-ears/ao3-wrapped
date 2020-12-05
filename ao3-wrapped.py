@@ -119,7 +119,7 @@ if args.no_dump_report is False:
     report_file = f"{args.username}_{time_str}.txt"
     if os.path.exists(report_file):
         print(f"Error: report file '{report_file}' already exists")
-        exit(1)
+        sys.exit(1)
     else:
         with open(report_file, 'a') as f:
             print(f"Welcome to your Ao3 Wrapped report for {current_year}, generated at {time_str}", file=f)
@@ -181,7 +181,7 @@ for entry in session.get_history(0, args.start_history_page, args.max_history_pa
 print(f"Total fics this year found in history: {fics_this_year}")
 
 if args.just_dump_history is True:
-    exit(0)
+    sys.exit(0)
 
 # For everything in the history
 for entry in session.get_history(0, args.start_history_page, args.max_history_page, args.rate_limit_pause):
