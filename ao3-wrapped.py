@@ -21,7 +21,8 @@ import getpass
 import os
 import sys
 import argparse
-# import pickle
+import atexit
+import pickle
 # import readline
 
 parser = argparse.ArgumentParser()
@@ -39,6 +40,7 @@ parser.add_argument("--max-history-page", type=int, default=100, help="Maximum n
 parser.add_argument("--rate-limit-pause", type=int, default=180, help="Seconds to wait if rate limited while retrieving tags")
 parser.add_argument("--no-dump-report", action="store_true", default=False, help="Dump report out to a text file")
 parser.add_argument("--just-dump-history", action="store_true", default=False, help="Just dump out the history page contents")
+parser.add_argument("--state-file", type=str, default="current-state.pickle", help="File that stores current counter states so that if the run fails half way through it can pick back up again, default 'current-state.pickle'")
 
 args = parser.parse_args()
 args.start_history_page -= 1 # This thing is zero indexed
@@ -55,6 +57,31 @@ def retrieve_work(workid):
             print(f"Being rate limited, sleeping for {args.rate_limit_pause} seconds then trying again")
             time.sleep(args.rate_limit_pause)
     return work
+
+def session_create(username, password):
+    session = None
+    while session is None:
+        try:
+            session = AO3.Session(username, password)
+        except AO3.utils.HTTPError:
+            print(f"Being rate limited, sleeping for {args.rate_limit_pause} seconds then trying again")
+            time.sleep(args.rate_limit_pause)
+    return session
+
+
+def session_refresh(session):
+    succeeded = None
+    while succeeded is None:
+        try:
+            session.refresh_auth_token()
+            succeeded = True
+
+        except AO3.utils.HTTPError:
+            print(f"Being rate limited, sleeping for {args.rate_limit_pause} seconds then trying again")
+            time.sleep(args.rate_limit_pause)
+
+    return session
+
 
 def left_kudos_p(work, username):
     small_kudos = work._soup.find('p', {'class': 'kudos'})
@@ -114,7 +141,7 @@ print(f"Retrieving up to {number_of_pages_of_history} pages of history with {arg
 
 # If we're outputting a report set that up
 report_file = None
-if args.no_dump_report is False:
+if args.no_dump_report is False or args.just_dump_history is True:
     time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     report_file = f"{args.username}_{time_str}.txt"
     if os.path.exists(report_file):
@@ -129,22 +156,16 @@ if report_file is not None:
 
 
 # Login to Ao3
-session = AO3.Session(args.username, args.password)
-session.refresh_auth_token()
-
-#works_cache = {}
-#if os.path.exists(args.work_cache_file) and os.stat(args.work_cache_file).st_size > 0:
-#    fileio = open(args.work_cache_file, 'rb')
-#    works_cache = pickle.load(fileio)
-#    fileio.close()
+session = session_create(args.username, args.password)
+session_refresh(session)
 
 # Attempt to tune the request rates to avoid getting timed out
-#AO3.utils.limit_requests(True)
 AO3.utils.set_timew(args.request_window)
 AO3.utils.set_rqtw(args.request_amount)
 
 # These store the tags and works with numbers of hits against them so
 # we can sort by frequency
+workids_seen = []
 work_frequency = {}
 tag_frequency = {}
 author_frequency = {}
@@ -160,6 +181,76 @@ left_kudos = 0
 # This was here for debugging to make it only churn through a few fics
 max_process = 3
 curr_process = 0
+
+
+def store_state():
+    global workids_seen
+    global work_frequency
+    global tag_frequency
+    global author_frequency
+    global relationship_frequency
+    global character_frequency
+    global fandom_frequency
+    global category_frequency
+    global warning_frequency
+    global rating_frequency
+    global total_words
+    global left_kudos
+    #global curr_process
+
+    sys.setrecursionlimit(10000)
+    
+    print(f"Something went wrong, dumping state to '{args.state_file}'")
+    if os.path.exists(args.state_file):
+        print(f"Removing existing state file...")
+        os.unlink(args.state_file)
+    with open(args.state_file, 'wb') as f:
+        pickle.dump(workids_seen, f)
+        pickle.dump(work_frequency, f)
+        pickle.dump(tag_frequency, f)
+        pickle.dump(author_frequency, f)
+        pickle.dump(relationship_frequency, f)
+        pickle.dump(character_frequency, f)
+        pickle.dump(fandom_frequency, f)
+        pickle.dump(category_frequency, f)
+        pickle.dump(warning_frequency, f)
+        pickle.dump(rating_frequency, f)
+        pickle.dump(total_words, f)
+        pickle.dump(left_kudos, f)
+        #pickle.dump(curr_process, f)
+
+def restore_state():
+    global workids_seen
+    global work_frequency
+    global tag_frequency
+    global author_frequency
+    global relationship_frequency
+    global character_frequency
+    global fandom_frequency
+    global category_frequency
+    global warning_frequency
+    global rating_frequency
+    global total_words
+    global left_kudos
+    #global curr_process
+
+    if os.path.exists(args.state_file):
+        print(f"Restoring state from '{args.state_file}'")
+        with open(args.state_file, 'rb') as f:
+            workids_seen = pickle.load(f)
+            work_frequency = pickle.load(f)
+            tag_frequency = pickle.load(f)
+            author_frequency = pickle.load(f)
+            relationship_frequency = pickle.load(f)
+            character_frequency = pickle.load(f)
+            fandom_frequency = pickle.load(f)
+            category_frequency = pickle.load(f)
+            warning_frequency = pickle.load(f)
+            rating_frequency = pickle.load(f)
+            total_words = pickle.load(f)
+            left_kudos = pickle.load(f)
+            #curr_process = pickle.load(f)
+
 
 # Fetch the history for the session
 session.get_history(args.history_sleep,
@@ -180,12 +271,21 @@ for entry in session.get_history(0, args.start_history_page, args.max_history_pa
 
 print(f"Total fics this year found in history: {fics_this_year}")
 
+# If we're exiting early then just bail out
 if args.just_dump_history is True:
     sys.exit(0)
+
+# Before we exit dump state
+atexit.register(store_state)
+
+skip_to_fic = None
+if os.path.exists(args.state_file):
+    restore_state()
 
 # For everything in the history
 for entry in session.get_history(0, args.start_history_page, args.max_history_page, args.rate_limit_pause):
     curr_process += 1
+
     work_obj = entry[0]
     num_obj = entry[1]
     date_obj = entry[2]
@@ -194,11 +294,22 @@ for entry in session.get_history(0, args.start_history_page, args.max_history_pa
 
     # Process if in the current year
     if date_obj.year == current_year:
+        processed_something = False # Controls sleep
+        
         try:
+            # If we're doing a skip because of a restore then bail
+            if work_obj.workid in workids_seen:
+                print(f"{curr_process}/{fics_this_year}: Skipping data for '{work_obj}' (viewed {num_obj} times, last: {date_obj.date()}) - restoring", flush=True)
+                raise Exception("restore skipping")
+
+            # print(f"{work_obj.workid} not in {workids_seen}")
+            
+            
             # Get the work details
             work = retrieve_work(work_obj.workid)
 
             if work:
+                processed_something = True # We got something so sleep
             
                 # check for kudos
                 has_left_kudos = False
@@ -224,34 +335,40 @@ for entry in session.get_history(0, args.start_history_page, args.max_history_pa
                 if left_kudos_p(work, args.username):
                     left_kudos += 1
                     
-
                 # Store the rating
-                thing_counter(work.rating, rating_frequency)
+                thing_counter(str(work.rating), rating_frequency)
 
                 # Store just about everything else
                 meta_thing_counter(tag_frequency, work.tags)
-                meta_thing_counter(author_frequency, work.authors)
+                meta_thing_counter(author_frequency, map(lambda x: x.username, work.authors))
                 meta_thing_counter(relationship_frequency, work.relationships)
                 meta_thing_counter(character_frequency, work.characters)
                 meta_thing_counter(fandom_frequency, work.fandoms)
                 meta_thing_counter(category_frequency, work.categories)
                 meta_thing_counter(warning_frequency, work.warnings)
+
+                workids_seen.append(work_obj.workid)
+
             else:
                 print(f"{work} - {date_obj.date()}")
-                print(f"Error: Couldn't retrieve work tags")
+                print(f"Error: Couldn't retrieve work data")
 
         # If we see an AuthError its probably a restricted work of
         # some kind that doesn't let us view it.
         except AO3.utils.AuthError:
-            print(f"Error: auth error on work {work_obj} probably restricted, but try to refresh auth token just in case")
-            session.refresh_auth_token()
+            print(f"Error: auth error on work {work_obj} probably restricted")
+            #session_refresh(session)
             
         except Exception as e:
             if e == 'no kudos left':
                 pass
+            elif e == 'restore skipping':
+                pass
 
         # Add an extra sleep after the work to try and avoid the rate limiter
-        time.sleep(args.sleep)
+        if processed_something is True:
+            time.sleep(args.sleep)
+
     elif args.year is not None:
         print(f"{curr_process}/{fics_this_year}: Ignoring, not in {current_year}: {work_obj} - {num_obj} - {date_obj.date()}")
 
@@ -296,3 +413,9 @@ output_terminal_and_file(f"\n\n---------- Total Words Read ----------\n{total_wo
 #fileio.close()
 
 print(f"\nDONE!  Happy {current_year}")
+
+# Successful process, in which case we don't need to store state,
+# remove any we have already stored.
+atexit.unregister(store_state)
+if os.path.exists(args.state_file):
+    os.unlink(args.state_file)
