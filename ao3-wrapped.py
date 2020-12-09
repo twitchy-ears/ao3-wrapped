@@ -23,9 +23,11 @@ import sys
 import argparse
 import atexit
 import pickle
+import re
 # import readline
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--debug", action="store_true", default=False, help="Outputs verbose debugging messages")
 parser.add_argument("-u", "--username", type=str, default=None, help="Username")
 parser.add_argument("-p", "--password", type=str, default=None, help="Password")
 parser.add_argument("--year", type=int, default=None, help="Set the year, otherwise current")
@@ -40,7 +42,7 @@ parser.add_argument("--max-history-page", type=int, default=100, help="Maximum n
 parser.add_argument("--rate-limit-pause", type=int, default=180, help="Seconds to wait if rate limited while retrieving tags")
 parser.add_argument("--no-dump-report", action="store_true", default=False, help="Dump report out to a text file")
 parser.add_argument("--just-dump-history", action="store_true", default=False, help="Just dump out the history page contents")
-parser.add_argument("--state-file", type=str, default="current-state.pickle", help="File that stores current counter states so that if the run fails half way through it can pick back up again, default 'current-state.pickle'")
+parser.add_argument("--state-file", type=str, default="{username}.current-state.pickle", help="File that stores current counter states so that if the run fails half way through it can pick back up again, default '{username}.current-state.pickle'")
 
 args = parser.parse_args()
 args.start_history_page -= 1 # This thing is zero indexed
@@ -84,19 +86,29 @@ def session_refresh(session):
 
 
 def left_kudos_p(work, username):
+    global args
+    
     small_kudos = work._soup.find('p', {'class': 'kudos'})
     if small_kudos is not None: 
         for a in small_kudos.find_all("a"):
-            if a.attrs["href"] == f"/users/{username}":
-                # print(f"User '{username}' has left kudos on work {work.title} | {work.url}")
+            match = re.match(f"/users/{username}", a.attrs["href"], re.IGNORECASE)
+            if match is not None:
+                if args.debug is True:
+                    print(f"User '{username}' has left kudos on work {work.title} | {work.url}")
                 return True;
 
     big_kudos = work._soup.find('span', {'class': 'kudos_expanded hidden'})
     if big_kudos is not None:
         for a in big_kudos.find_all("a"):
-            if a.attrs["href"] == f"/users/{username}":
-                # print(f"User '{username}' has left kudos on work {work.title} | {work.url}")
+            match = re.match(f"/users/{username}", a.attrs["href"], re.IGNORECASE)
+            if match is not None:
+                if args.debug is True:
+                    print(f"User '{username}' has left kudos on work {work.title} | {work.url}")
                 return True;
+
+            
+    if args.debug is True:
+        print(f"User '{username}' has not left kudos on work {work.title} | {work.url}")
 
     return False;
     
@@ -126,16 +138,96 @@ def top_number_of_thing(thing, label, report_file):
     for data in sorted_data[:args.top_number]:
         output_terminal_and_file(f"{data[0]}: {data[1]}", report_file)
 
+        
+def store_state():
+    global actual_state_file
+    global workids_seen
+    global work_frequency
+    global tag_frequency
+    global author_frequency
+    global relationship_frequency
+    global character_frequency
+    global fandom_frequency
+    global category_frequency
+    global warning_frequency
+    global rating_frequency
+    global total_words
+    global left_kudos
+    #global curr_process
 
+    sys.setrecursionlimit(10000)
+    
+    print(f"Something went wrong, dumping state to '{actual_state_file}'")
+
+    if os.path.exists(actual_state_file):
+        print(f"Removing existing state file...")
+        os.unlink(actual_state_file)
+
+    with open(actual_state_file, 'wb') as f:
+        pickle.dump(workids_seen, f)
+        pickle.dump(work_frequency, f)
+        pickle.dump(tag_frequency, f)
+        pickle.dump(author_frequency, f)
+        pickle.dump(relationship_frequency, f)
+        pickle.dump(character_frequency, f)
+        pickle.dump(fandom_frequency, f)
+        pickle.dump(category_frequency, f)
+        pickle.dump(warning_frequency, f)
+        pickle.dump(rating_frequency, f)
+        pickle.dump(total_words, f)
+        pickle.dump(left_kudos, f)
+        #pickle.dump(curr_process, f)
+
+def restore_state():
+    global actual_state_file
+    global workids_seen
+    global work_frequency
+    global tag_frequency
+    global author_frequency
+    global relationship_frequency
+    global character_frequency
+    global fandom_frequency
+    global category_frequency
+    global warning_frequency
+    global rating_frequency
+    global total_words
+    global left_kudos
+    #global curr_process
+
+    if os.path.exists(actual_state_file):
+        print(f"Restoring state from '{actual_state_file}'")
+
+        with open(actual_state_file, 'rb') as f:
+            workids_seen = pickle.load(f)
+            work_frequency = pickle.load(f)
+            tag_frequency = pickle.load(f)
+            author_frequency = pickle.load(f)
+            relationship_frequency = pickle.load(f)
+            character_frequency = pickle.load(f)
+            fandom_frequency = pickle.load(f)
+            category_frequency = pickle.load(f)
+            warning_frequency = pickle.load(f)
+            rating_frequency = pickle.load(f)
+            total_words = pickle.load(f)
+            left_kudos = pickle.load(f)
+            #curr_process = pickle.load(f)
+
+
+# If we don't have a username/password ask the user for one
 if args.username is None:
     args.username = input("Username: ")
 if args.password is None:
     args.password = getpass.getpass()
 
+# Generate the state file name
+actual_state_file = args.state_file.format(username = args.username)
+
+# Work out the current year/take one from the user
 current_year = datetime.today().year
 if args.year:
     current_year = args.year
 
+# Output some informational stuff
 print(f"Gathering up tags/works for user {args.username} in the year {current_year}")
 print(f"Retrieving up to {number_of_pages_of_history} pages of history with {args.history_sleep} seconds between each one, please be patient.")
 
@@ -147,9 +239,6 @@ if args.no_dump_report is False or args.just_dump_history is True:
     if os.path.exists(report_file):
         print(f"Error: report file '{report_file}' already exists")
         sys.exit(1)
-    else:
-        with open(report_file, 'a') as f:
-            print(f"Welcome to your Ao3 Wrapped report for {current_year}, generated at {time_str}", file=f)
 
 if report_file is not None:
     print(f"Output will be dumped to '{report_file}'")
@@ -182,76 +271,6 @@ left_kudos = 0
 max_process = 3
 curr_process = 0
 
-
-def store_state():
-    global workids_seen
-    global work_frequency
-    global tag_frequency
-    global author_frequency
-    global relationship_frequency
-    global character_frequency
-    global fandom_frequency
-    global category_frequency
-    global warning_frequency
-    global rating_frequency
-    global total_words
-    global left_kudos
-    #global curr_process
-
-    sys.setrecursionlimit(10000)
-    
-    print(f"Something went wrong, dumping state to '{args.state_file}'")
-    if os.path.exists(args.state_file):
-        print(f"Removing existing state file...")
-        os.unlink(args.state_file)
-    with open(args.state_file, 'wb') as f:
-        pickle.dump(workids_seen, f)
-        pickle.dump(work_frequency, f)
-        pickle.dump(tag_frequency, f)
-        pickle.dump(author_frequency, f)
-        pickle.dump(relationship_frequency, f)
-        pickle.dump(character_frequency, f)
-        pickle.dump(fandom_frequency, f)
-        pickle.dump(category_frequency, f)
-        pickle.dump(warning_frequency, f)
-        pickle.dump(rating_frequency, f)
-        pickle.dump(total_words, f)
-        pickle.dump(left_kudos, f)
-        #pickle.dump(curr_process, f)
-
-def restore_state():
-    global workids_seen
-    global work_frequency
-    global tag_frequency
-    global author_frequency
-    global relationship_frequency
-    global character_frequency
-    global fandom_frequency
-    global category_frequency
-    global warning_frequency
-    global rating_frequency
-    global total_words
-    global left_kudos
-    #global curr_process
-
-    if os.path.exists(args.state_file):
-        print(f"Restoring state from '{args.state_file}'")
-        with open(args.state_file, 'rb') as f:
-            workids_seen = pickle.load(f)
-            work_frequency = pickle.load(f)
-            tag_frequency = pickle.load(f)
-            author_frequency = pickle.load(f)
-            relationship_frequency = pickle.load(f)
-            character_frequency = pickle.load(f)
-            fandom_frequency = pickle.load(f)
-            category_frequency = pickle.load(f)
-            warning_frequency = pickle.load(f)
-            rating_frequency = pickle.load(f)
-            total_words = pickle.load(f)
-            left_kudos = pickle.load(f)
-            #curr_process = pickle.load(f)
-
-
 # Fetch the history for the session
 session.get_history(args.history_sleep,
                     args.start_history_page,
@@ -278,8 +297,7 @@ if args.just_dump_history is True:
 # Before we exit dump state
 atexit.register(store_state)
 
-skip_to_fic = None
-if os.path.exists(args.state_file):
+if os.path.exists(actual_state_file):
     restore_state()
 
 # For everything in the history
@@ -302,16 +320,17 @@ for entry in session.get_history(0, args.start_history_page, args.max_history_pa
                 print(f"{curr_process}/{fics_this_year}: Skipping data for '{work_obj}' (viewed {num_obj} times, last: {date_obj.date()}) - restoring", flush=True)
                 raise Exception("restore skipping")
 
-            # print(f"{work_obj.workid} not in {workids_seen}")
-            
-            
             # Get the work details
             work = retrieve_work(work_obj.workid)
 
             if work:
-                processed_something = True # We got something so sleep
+                # We got something so sleep at the end of the processing
+                processed_something = True
+
+                if args.debug is True:
+                    print(f"We got work ({work}) and are processing it")
             
-                # check for kudos
+                # check for kudos, count here
                 has_left_kudos = False
                 if left_kudos_p(work, args.username):
                     left_kudos += 1
@@ -320,6 +339,7 @@ for entry in session.get_history(0, args.start_history_page, args.max_history_pa
                 if args.only_kudos is True and has_left_kudos is not True:
                     print(f"{curr_process}/{fics_this_year}: Skipping data for '{work}' (viewed {num_obj} times, last: {date_obj.date()}, word-count: {work.words}) - no kudos", flush=True)
                     raise Exception("no kudos left")
+
                 
                 # Print out title, times, date
                 print(f"{curr_process}/{fics_this_year}: Retrieving data for '{work}' (viewed {num_obj} times, last: {date_obj.date()}, word-count: {work.words})", flush=True)
@@ -331,10 +351,6 @@ for entry in session.get_history(0, args.start_history_page, args.max_history_pa
                 # Count words
                 total_words += work.words
 
-                # kudos
-                if left_kudos_p(work, args.username):
-                    left_kudos += 1
-                    
                 # Store the rating
                 thing_counter(str(work.rating), rating_frequency)
 
@@ -360,10 +376,19 @@ for entry in session.get_history(0, args.start_history_page, args.max_history_pa
             #session_refresh(session)
             
         except Exception as e:
-            if e == 'no kudos left':
+            if str(e) == 'no kudos left':
+                if args.debug is True:
+                    print("No kudos found skip")
                 pass
-            elif e == 'restore skipping':
+
+            elif str(e) == 'restore skipping':
+                if args.debug is True:
+                    print("Restore skip")
                 pass
+
+            else:
+                print(f"Unknown error: {e}")
+                exit(1)
 
         # Add an extra sleep after the work to try and avoid the rate limiter
         if processed_something is True:
@@ -372,8 +397,13 @@ for entry in session.get_history(0, args.start_history_page, args.max_history_pa
     elif args.year is not None:
         print(f"{curr_process}/{fics_this_year}: Ignoring, not in {current_year}: {work_obj} - {num_obj} - {date_obj.date()}")
 
+
+
+        
 print("\n\n---------- RESULTS ----------\n")
 
+output_terminal_and_file(f"Welcome to your Ao3 Wrapped report for {current_year}, generated at {time_str}", report_file)
+        
 top_number_of_thing(work_frequency, 'Works', report_file)
 top_number_of_thing(tag_frequency, 'Tags', report_file)
 top_number_of_thing(author_frequency, 'Authors', report_file)
@@ -391,31 +421,11 @@ output_terminal_and_file(f"\n\n---------- Left Kudos ----------\n{left_kudos}", 
 
 output_terminal_and_file(f"\n\n---------- Total Words Read ----------\n{total_words}", report_file)
 
-# Sort the results
-#sorted_tags = sorted(tag_frequency.items(), key=lambda x: x[1],reverse=True)
-#sorted_work = sorted(work_frequency.items(), key=lambda x: x[1],reverse=True)
-#
-#print(f"\n\n---------- Top {args.num_tags} tags ----------\n")
-#for data in sorted_tags[:args.num_tags]:
-#    print(f"{data[0]}: {data[1]}")
-#
-#print(f"\n\n---------- Top {args.num_works} works ----------\n")
-#for data in sorted_work[:args.num_works]:
-#    #work = retrieve_work(data[0])
-#    print(f"{work[0]}: {data[1]}")
-#    #time.sleep(args.sleep) # Again, don't get rate limited
-
-
-# Cannot cache the beautiful soup
-#sys.setrecursionlimit(500000)
-#fileio = open(args.work_cache_file, 'wb')
-#pickle.dump(works_cache, fileio)
-#fileio.close()
 
 print(f"\nDONE!  Happy {current_year}")
 
 # Successful process, in which case we don't need to store state,
 # remove any we have already stored.
 atexit.unregister(store_state)
-if os.path.exists(args.state_file):
-    os.unlink(args.state_file)
+if os.path.exists(actual_state_file):
+    os.unlink(actual_state_file)
