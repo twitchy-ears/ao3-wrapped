@@ -38,7 +38,7 @@ parser.add_argument("--request-amount", type=int, default=40, help="Number of re
 parser.add_argument("--sleep", type=int, default=3, help="Additional sleep between requesting each work for tags, default=3")
 parser.add_argument("--history-sleep", type=int, default=3, help="Additional sleep between loading history pages, default=3")
 parser.add_argument("--start-history-page", type=int, default=1, help="Start reading on this history page, default 1, can be used with --max-history-pages and --year to select a range")
-parser.add_argument("--max-history-page", type=int, default=100, help="Maximum number of pages of history to load, default=100")
+parser.add_argument("--max-history-page", type=int, default=500, help="Maximum page of history to load, default=500")
 parser.add_argument("--rate-limit-pause", type=int, default=180, help="Seconds to wait if rate limited while retrieving tags")
 parser.add_argument("--no-dump-report", action="store_true", default=False, help="Dump report out to a text file")
 parser.add_argument("--just-dump-history", action="store_true", default=False, help="Just dump out the history page contents")
@@ -48,7 +48,7 @@ parser.add_argument("--version", action="store_true", default=False, help="Show 
 args = parser.parse_args()
 args.start_history_page -= 1 # This thing is zero indexed
 args.max_history_page -= 1  # This thing is zero indexed
-number_of_pages_of_history = (args.max_history_page - args.start_history_page) + 1
+number_of_pages_of_history = (args.max_history_page - args.start_history_page)
 version_file="version.txt"
 
 def get_version(filename):
@@ -249,8 +249,8 @@ if args.year:
     current_year = args.year
 
 # Output some informational stuff
-print(f"Gathering up tags/works for user {args.username} in the year {current_year}")
-print(f"Retrieving up to {number_of_pages_of_history} pages of history with {args.history_sleep} seconds between each one, please be patient.")
+print(f"Gathering fic data for user {args.username} in the year {current_year}")
+print(f"Retrieving at most {number_of_pages_of_history} pages of history with {args.history_sleep} seconds between each one, please be patient.")
 
 # If we're outputting a report set that up
 report_file = None
@@ -296,11 +296,12 @@ curr_process = 0
 session.get_history(args.history_sleep,
                     args.start_history_page,
                     args.max_history_page,
-                    args.rate_limit_pause)
+                    args.rate_limit_pause,
+                    current_year)
 
 # Now count up how many are in this year
 fics_this_year = 0
-for entry in session.get_history(0, args.start_history_page, args.max_history_page, args.rate_limit_pause):
+for entry in session.get_history(0, args.start_history_page, args.max_history_page, args.rate_limit_pause, current_year):
     work_obj = entry[0]
     num_obj = entry[1]
     date_obj = entry[2]
@@ -322,7 +323,7 @@ if os.path.exists(actual_state_file):
     restore_state()
 
 # For everything in the history
-for entry in session.get_history(0, args.start_history_page, args.max_history_page, args.rate_limit_pause):
+for entry in session.get_history(0, args.start_history_page, args.max_history_page, args.rate_limit_pause, current_year):
     curr_process += 1
 
     work_obj = entry[0]
@@ -416,7 +417,7 @@ for entry in session.get_history(0, args.start_history_page, args.max_history_pa
             time.sleep(args.sleep)
 
     elif args.year is not None:
-        print(f"{curr_process}/{fics_this_year}: Ignoring, not in {current_year}: {work_obj} - {num_obj} - {date_obj.date()}")
+        print(f"{curr_process}/{fics_this_year}: Ignoring, not in {current_year}: {work_obj} (viewed {num_obj} times, last: {date_obj.date()})")
 
 
 

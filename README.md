@@ -13,9 +13,11 @@ So someone showed me a tweet talking about the idea of an Ao3 wrapped script, wh
 
 Currently it outputs works (by amount viewed), tags, relationships, characters, fandoms, categories, warnings, ratings, number of fics, kudos left, and total words in all fics.  It will only output fics that are publicly viewable since if it uses the session details to log in as you to view them it will reset the "last viewed" date for all of this years fics to today.
 
-As an early warning running this will take *a long time*, by default it will load 100 pages of your history (~2000 fics), with a 3 second sleep between each page.  Then it will retrieve the tags from each fic read in the current year, again with a 3 second wait between each one to try and avoid the rate limiter.  So if you have read 2000 fics this year it will take ~5 minutes to load your history and then about 1 hour 40 to retrieve all the tags from those fics and process them for you.  Be very patient.
+As an early warning running this will take *a long time*, by default it will load up to 500 pages of your history (~10000 fics), with a 3 second sleep between each page, although it will stop loading history pages once it finds one before the year being reported on (default - 2020).
 
-If you know how many pages of history you want it to read you can set this with the ```--max-history-page``` option, see the Running and Configuring section for more examples.
+Then it will retrieve the tags and details from each fic read in the current year, again with a 3 second wait between each one to try and avoid the rate limiter.  So if you have read 2000 fics this year it will take ~5 minutes to load your history and then about 1 hour 40 to retrieve all the tags from those fics and process them for you.  Be very patient.
+
+The [Running and Configuring](#running-and-configuring) section of the manual includes details on how to tune things like which year you want to generate a report for and how to set it to scan only a specific range of history pages (to skip forward X pages to get to where you know the next year starts)
 
 # Windows Installation
 
@@ -181,7 +183,7 @@ First get a copy of the script working, then do this.
 
 1. ```python -m pip install pyinstaller```
 2. ```cd Downloads\ao3-wrapped-main\ao3-wrapped-main```
-2. ```PyInstaller -p %HOMEDRIVE%%HOMEPATH%\Downloads\ao3_api-noisy\ao3_api-noisy ao3-wrapped.py```
+2. ```PyInstaller -p %HOMEDRIVE%%HOMEPATH%\Downloads\ao3_api-noisy\ao3_api-noisy --add-data version.txt;. ao3-wrapped.py```
 
 
 ## Linux packages
