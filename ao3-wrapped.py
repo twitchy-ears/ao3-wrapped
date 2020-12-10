@@ -43,11 +43,24 @@ parser.add_argument("--rate-limit-pause", type=int, default=180, help="Seconds t
 parser.add_argument("--no-dump-report", action="store_true", default=False, help="Dump report out to a text file")
 parser.add_argument("--just-dump-history", action="store_true", default=False, help="Just dump out the history page contents")
 parser.add_argument("--state-file", type=str, default="{username}.current-state.pickle", help="File that stores current counter states so that if the run fails half way through it can pick back up again, default '{username}.current-state.pickle'")
+parser.add_argument("--version", action="store_true", default=False, help="Show Version")
 
 args = parser.parse_args()
 args.start_history_page -= 1 # This thing is zero indexed
 args.max_history_page -= 1  # This thing is zero indexed
 number_of_pages_of_history = (args.max_history_page - args.start_history_page) + 1
+version_file="version.txt"
+
+def get_version(filename):
+    version = None
+    try:
+        with open("version.txt", 'r') as f:
+            for line in f:
+                version = line.strip()
+    except FileNotFoundError as e:
+        pass
+    
+    return version
 
 def retrieve_work(workid):
     work = None
@@ -212,6 +225,14 @@ def restore_state():
             left_kudos = pickle.load(f)
             #curr_process = pickle.load(f)
 
+
+# If we're just outputting the version do that first
+program_version = get_version(version_file)
+program_version_string = f"{os.path.basename(__file__)} {program_version}"
+
+if args.version is True:
+    print(program_version_string)
+    sys.exit(0)
 
 # If we don't have a username/password ask the user for one
 if args.username is None:
@@ -402,7 +423,7 @@ for entry in session.get_history(0, args.start_history_page, args.max_history_pa
         
 print("\n\n---------- RESULTS ----------\n")
 
-output_terminal_and_file(f"Welcome to your Ao3 Wrapped report for {current_year}, generated at {time_str}", report_file)
+output_terminal_and_file(f"Welcome to your Ao3 Wrapped report for {current_year}, generated at {time_str} by {program_version_string}", report_file)
         
 top_number_of_thing(work_frequency, 'Works', report_file)
 top_number_of_thing(tag_frequency, 'Tags', report_file)
