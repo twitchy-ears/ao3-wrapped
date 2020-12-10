@@ -190,4 +190,4 @@ First get a working copy of the script as per the install, then do this:
 
 1. ```python3.8 -m pip install pyinstaller```
 2. ```cd ao3-wrapped```
-2. ```pyinstaller -p ../ao3_api ao3-wrapped.py```
+2. ```pyinstaller -p ../ao3_api --add-data 'version.txt:.' ao3-wrapped.py```
