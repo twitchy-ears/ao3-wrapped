@@ -3,8 +3,13 @@
     - PySimpleGUI [1/2]
       - [X] Test on Linux
       - [ ] Test on Windows
-  - [X] Per month [2/2]
+  - [X] Simple per-month [2/2]
     - [X] Read/Finished
     - [X] Wordcount
+  - [ ] Fancy output
+    - [ ] HTML page
+    - [ ] Total for all things collected
+    - [ ] Per-month for all things collected
+    - [ ] Calendar to show fic reading hotspot dates?
   - [X] Checkpoint every 10 fics
   - [ ] Process bookmarks to show tags/authors/etc you bookmarked this year
