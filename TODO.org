@@ -1,0 +1,7 @@
+* Things todo:
+  - GUI wrapper?
+    - PySimpleGUI [1/2]
+      - [X] Test on Linux
+      - [ ] Test on Windows
+  - Chart read/finished/abandoned fic per month (i.e. graph the last read date)
+  - Process bookmarks to show tags/authors/etc you bookmarked this year
