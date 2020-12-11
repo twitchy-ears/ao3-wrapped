@@ -48,8 +48,11 @@ parser.add_argument("--version", action="store_true", default=False, help="Show 
 args = parser.parse_args()
 args.start_history_page -= 1 # This thing is zero indexed
 args.max_history_page -= 1  # This thing is zero indexed
-number_of_pages_of_history = (args.max_history_page - args.start_history_page)
+number_of_pages_of_history = (args.max_history_page - args.start_history_page) + 1
 version_file="version.txt"
+
+if args.debug is True:
+    print(args)
 
 def get_version(filename):
     version = None
@@ -126,13 +129,13 @@ def left_kudos_p(work, username):
     return False;
     
 
-def thing_counter(thing, place):
+def thing_counter(thing, place, value=1):
     try: 
-        place[thing] += 1
+        place[thing] += value
         
     # If we don't have 
     except KeyError:
-        place[thing] = 1
+        place[thing] = value
 
 def meta_thing_counter(place, source):
     for data in source:
@@ -164,18 +167,19 @@ def store_state():
     global category_frequency
     global warning_frequency
     global rating_frequency
+    global monthly_read
+    global monthly_wordcount
     global total_words
     global left_kudos
     #global curr_process
 
     sys.setrecursionlimit(10000)
     
-    print(f"Something went wrong, dumping state to '{actual_state_file}'")
-
     if os.path.exists(actual_state_file):
-        print(f"Removing existing state file...")
+        # print(f"Removing existing state file...")
         os.unlink(actual_state_file)
 
+    print(f"Saving progress to '{actual_state_file}'")
     with open(actual_state_file, 'wb') as f:
         pickle.dump(workids_seen, f)
         pickle.dump(work_frequency, f)
@@ -187,6 +191,8 @@ def store_state():
         pickle.dump(category_frequency, f)
         pickle.dump(warning_frequency, f)
         pickle.dump(rating_frequency, f)
+        pickle.dump(monthly_read, f)
+        pickle.dump(monthly_wordcount, f)
         pickle.dump(total_words, f)
         pickle.dump(left_kudos, f)
         #pickle.dump(curr_process, f)
@@ -203,6 +209,8 @@ def restore_state():
     global category_frequency
     global warning_frequency
     global rating_frequency
+    global monthly_read
+    global monthly_wordcount
     global total_words
     global left_kudos
     #global curr_process
@@ -221,6 +229,8 @@ def restore_state():
             category_frequency = pickle.load(f)
             warning_frequency = pickle.load(f)
             rating_frequency = pickle.load(f)
+            monthly_read = pickle.load(f)
+            monthly_wordcount = pickle.load(f)
             total_words = pickle.load(f)
             left_kudos = pickle.load(f)
             #curr_process = pickle.load(f)
@@ -285,6 +295,8 @@ fandom_frequency = {}
 category_frequency = {}
 warning_frequency = {}
 rating_frequency = {}
+monthly_read = {}
+monthly_wordcount = {}
 total_words = 0
 left_kudos = 0
 
@@ -385,8 +397,17 @@ for entry in session.get_history(0, args.start_history_page, args.max_history_pa
                 meta_thing_counter(category_frequency, work.categories)
                 meta_thing_counter(warning_frequency, work.warnings)
 
+                ym_str = date_obj.strftime("%Y-%m")
+                thing_counter(ym_str, monthly_read)
+                thing_counter(ym_str, monthly_wordcount, work.words)
+                
+                # Add to list of fics seen
                 workids_seen.append(work_obj.workid)
 
+                # Checkpoint every 10 fics
+                if curr_process % 10 == 0:
+                    store_state()
+                    
             else:
                 print(f"{work} - {date_obj.date()}")
                 print(f"Error: Couldn't retrieve work data")
@@ -437,14 +458,23 @@ top_number_of_thing(warning_frequency, 'Warnings', report_file)
 top_number_of_thing(rating_frequency, 'Ratings', report_file)
 
 
+output_terminal_and_file(f"\n\n---------- Left Kudos ----------\n{left_kudos}", report_file)
+
 output_terminal_and_file(f"\n\n---------- Fics This Year ----------\n{fics_this_year}", report_file)
 
-output_terminal_and_file(f"\n\n---------- Left Kudos ----------\n{left_kudos}", report_file)
+output_terminal_and_file(f"\n\n---------- History Entries by Month ----------\n(Noting that this is not fics *read* in a month it is number of fics last *visited* in a month)\n", report_file)
+for ym_str in sorted(monthly_read):
+    output_terminal_and_file(f"{ym_str}: {monthly_read[ym_str]}", report_file)
+
+output_terminal_and_file(f"\n\n---------- Words of History Entries by Month ----------\n(Noting that this is not fics *read* in a month it is number of fics last *visited* in a month)\n", report_file)
+for ym_str in sorted(monthly_wordcount):
+    output_terminal_and_file(f"{ym_str}: {monthly_wordcount[ym_str]}", report_file)
+
 
 output_terminal_and_file(f"\n\n---------- Total Words Read ----------\n{total_words}", report_file)
 
 
-print(f"\nDONE!  Happy {current_year}")
+print(f"\nDONE!  Happy {current_year}   (report in: '{report_file}')")
 
 # Successful process, in which case we don't need to store state,
 # remove any we have already stored.
